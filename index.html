@@ -12,8 +12,9 @@
 html,body{height:100%;margin:0}
 body{background:#120e0c;color:var(--on);font-family:-apple-system,"SF Pro Display","SF Pro Text","Inter",system-ui,"Segoe UI",sans-serif;overflow:hidden;-webkit-font-smoothing:antialiased}
 #bg{position:fixed;inset:0;z-index:0;background:radial-gradient(60% 45% at 18% 12%,#c2562d 0,transparent 70%),radial-gradient(55% 40% at 88% 42%,#6d3a97 0,transparent 70%),radial-gradient(75% 50% at 35% 100%,#1c6a74 0,transparent 70%),#120e0c}
-.sl{position:absolute;inset:0;background:center/cover no-repeat;opacity:0;transition:opacity 1.8s ease}
-.sl.on{opacity:1}
+.sl{position:absolute;inset:0;background:center/cover no-repeat;opacity:0;z-index:0;transition:opacity 1.8s ease;will-change:opacity;transform:translateZ(0)}
+.sl.prev{opacity:1;z-index:1;transition:none}
+.sl.on{opacity:1;z-index:2}
 #bg::after{content:"";position:absolute;inset:0;background:linear-gradient(rgba(0,0,0,.28),rgba(0,0,0,0) 30%,rgba(0,0,0,.18) 55%,rgba(0,0,0,.55))}
 .app{position:relative;z-index:1;height:100%;display:flex;flex-direction:column;padding:10px 18px 16px;max-width:520px;margin:0 auto}
 .glass{position:relative;background:linear-gradient(135deg,rgba(255,255,255,.2),rgba(255,255,255,.06)),rgba(20,16,14,.26);backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);border:1px solid rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.4),inset 0 -1px 0 rgba(255,255,255,.06),0 12px 32px rgba(0,0,0,.3)}
@@ -91,6 +92,7 @@ input[type=file]{display:none}
       <button data-a="import">Import playlist (CSV)</button>
        <button data-a="logout">Sign out</button>
       <button data-a="audio">Upload song files</button>
+      <button data-a="cover">Set cover for current song</button>
       <button data-a="photos">Add background photos</button>
       <button data-a="qr">Set my tip QR</button>
       <button data-a="clrS" class="dng">Clear playlist</button>
@@ -156,6 +158,7 @@ input[type=file]{display:none}
 
 <input type="file" id="fCsv" accept=".csv,text/csv">
 <input type="file" id="fAudio" accept="audio/*" multiple>
+<input type="file" id="fCover" accept="image/*">
 <input type="file" id="fPhotos" accept="image/*" multiple>
 <input type="file" id="fQr" accept="image/*">
 <audio id="au" preload="auto"></audio>
@@ -218,7 +221,7 @@ function selectSong(i,autoplay){
   $('sub').textContent=s.artist||'Zubeen Da Radio';showNext();
   $('kick').textContent='Now playing · '+songs.length+(songs.length===1?' song':' songs');
   $('tc').textContent='0:00';$('td').textContent=fmt(s.duration);$('prog').style.width='0%';
-  au.src=s.url;au.load();setMediaSession(s);
+  au.src=s.url;au.load();setMediaSession(s);setDisc(s);
   if(autoplay)au.play().catch(()=>setPlayingUI(false));else setPlayingUI(false);
 }
 au.addEventListener('play',()=>setPlayingUI(true));
@@ -255,184 +258,39 @@ async function loadPublicData(){
   else{bg.removeAttribute('src');bg.load();}
   slides();qrShow();refreshSongs();
 }
-let slideIndex=0,slideTop=0,slideTimer=null;
-function slides(){
-  clearInterval(slideTimer);
-  const a=$('s0'),b=$('s1');a.classList.remove('on');b.classList.remove('on');
-  if(!photos.length)return;
-  a.style.backgroundImage='url("'+photos[0].replace(/"/g,'')+'")';a.classList.add('on');slideIndex=0;slideTop=0;
-  if(photos.length>1)slideTimer=setInterval(()=>{
-    slideIndex=(slideIndex+1)%photos.length;
-    const n=slideTop?b:a,o=slideTop?a:b;
-    n.style.backgroundImage='url("'+photos[slideIndex].replace(/"/g,'')+'")';
-    n.classList.add('on');o.classList.remove('on');slideTop=1-slideTop;
-  },6000);
-}
-function qrShow(){
-  const url=settings?.qr_url;
-  if(url){$('qr').src=url;$('qr').hidden=false;$('qrEmpty').hidden=true}
-  else{$('qr').hidden=true;$('qrEmpty').hidden=false}
-}
-$('infoBtn').onclick=e=>{e.stopPropagation();$('dAbout').showModal()};
-$('closeAbout').onclick=()=>$('dAbout').close();
-$('dAbout').addEventListener('click',e=>{if(e.target===$('dAbout'))$('dAbout').close()});
-$('tip').onclick=()=>$('dTip').showModal();
-$('closeTip').onclick=()=>$('dTip').close();
-$('play').onclick=()=>{
-  if(current<0){if(order.length)playIndex(order[0]);return}
-  if(au.paused)au.play().catch(()=>{});else au.pause();
-};
-$('next').onclick=()=>playIndex(nextIndex());
-$('prev').onclick=()=>{
-  if(current<0)return;
-  if(au.currentTime>4)au.currentTime=0;else playIndex(prevIndex());
-};
-$('shuf').onclick=()=>{
-  shuffleOn=!shuffleOn;$('shuf').classList.toggle('on',shuffleOn);
-  $('shuf').setAttribute('aria-pressed',String(shuffleOn));buildOrder();showNext();
-};
-$('trk').onclick=e=>{
-  const d=au.duration;if(!d||!isFinite(d))return;
-  const r=$('trk').getBoundingClientRect();
-  au.currentTime=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*d;
-};
-
-async function checkAdmin(){
-  const {data:{session:s}}=await db.auth.getSession();session=s;
-  if(!s){isAdmin=false;$('mbtn').hidden=true;return false}
-  const {data,error}=await db.from('admin_users').select('user_id').eq('user_id',s.user.id).maybeSingle();
-  isAdmin=!error&&!!data;
-  $('mbtn').hidden=!isAdmin;
-  return isAdmin;
-}
-$('loginBtn').onclick=async()=>{
-  if(session){alert(isAdmin?'You are signed in as the site admin.':'Signed in, but this account is not registered as an admin.');return}
-  const email=prompt('Admin email address:');if(!email)return;
-  const password=prompt('Admin password:');if(!password)return;
-  const {data,error}=await db.auth.signInWithPassword({email,password});
-  if(error){alert('Login failed: '+error.message);return}
-  session=data.session;
-  if(await checkAdmin()){alert('Admin login successful!');}
-  else{await db.auth.signOut();session=null;alert('This account is not listed in admin_users.')}
-};
-$('mbtn').onclick=e=>{e.stopPropagation();$('menu').classList.toggle('open')};
-document.addEventListener('click',()=>$('menu').classList.remove('open'));
-$('menu').onclick=async e=>{
-  const action=e.target.dataset.a;if(!action)return;
-  if(!isAdmin){alert('Admin access required.');return}
-  if(action==='import')$('dImp').showModal();
-  if(action==='photos')$('fPhotos').click();
-  if(action==='qr')$('fQr').click();
-  if(action==='audio')$('fAudio').click();
-  if(action==='clrS'&&confirm('Delete every song from the online playlist?')){
-    const {error}=await db.from('songs').delete().gt('id',0);
-    if(error)alert(error.message);else{songs=[];refreshSongs()}
-  }
-  if(action==='clrP'&&confirm('Delete all registered background photos?')){
-    const {error}=await db.from('background_photos').delete().gt('id',0);
-    if(error)alert(error.message);else{photos=[];slides()}
-  }
-  if(action==='pub')alert('Your changes are saved directly to Supabase when each action completes.');
-  if(action==='logout'){await db.auth.signOut();session=null;isAdmin=false;$('mbtn').hidden=true;alert('Signed out.')}
-};
-function parseCSV(t){
-  const rows=[];let r=[],c='',q=false;
-  for(let i=0;i<t.length;i++){const ch=t[i];
-    if(q){if(ch==='"'&&t[i+1]==='"'){c+='"';i++}else if(ch==='"')q=false;else c+=ch}
-    else if(ch==='"')q=true;else if(ch===','){r.push(c);c=''}
-    else if(ch==='\n'||ch==='\r'){if(ch==='\r'&&t[i+1]==='\n')i++;r.push(c);c='';if(r.some(x=>x.trim()))rows.push(r);r=[]}
-    else c+=ch;
-  }
-  r.push(c);if(r.some(x=>x.trim()))rows.push(r);return rows;
-}
-$('closeImp').onclick=()=>$('dImp').close();
-$('pickCsv').onclick=()=>$('fCsv').click();
-$('fCsv').onchange=async e=>{const f=e.target.files[0];if(f)$('paste').value=await f.text();e.target.value=''};
-$('goImp').onclick=async()=>{
-  if(!isAdmin){$('impMsg').textContent='Please sign in as admin first.';return}
-  const rows=parseCSV($('paste').value.trim());if(!rows.length){$('impMsg').textContent='No CSV rows found.';return}
-  let h=rows[0].map(x=>x.trim().toLowerCase()),start=(h.includes('title')||h.includes('url'))?1:0;
-  const idx={title:h.indexOf('title'),artist:h.indexOf('artist'),album:h.indexOf('album'),duration:h.indexOf('duration'),url:h.indexOf('url')};
-  if(start===0){idx.title=0;idx.artist=1;idx.album=2;idx.duration=3;idx.url=4}
-  const payload=rows.slice(start).map((r,i)=>({
-    title:(r[idx.title]||'').trim(),artist:(r[idx.artist]||'').trim(),
-    album:(r[idx.album]||'').trim(),
-    duration:parseInt(r[idx.duration],10)||0,url:(r[idx.url]||'').trim(),sort_order:songs.length+i
-  })).filter(x=>x.title&&/^https?:\/\//i.test(x.url)&&!isYT(x.url));
-  if(!payload.length){$('impMsg').textContent='No valid rows. Expected Title, Artist, Album, Duration, URL (direct audio link, not YouTube).';return}
-  $('impMsg').textContent='Uploading '+payload.length+' songs…';
-  const {error}=await db.from('songs').insert(payload);
-  if(error){$('impMsg').textContent='Import failed: '+error.message;return}
-  $('impMsg').textContent='Imported '+payload.length+' songs successfully.';
-  await loadPublicData();$('dImp').close();$('paste').value='';
-};
-async function uploadAudio(file){
-  const ext=(file.name.split('.').pop()||'mp3').toLowerCase().replace(/[^a-z0-9]/g,'')||'mp3';
-  const path='songs/'+Date.now()+'-'+Math.random().toString(36).slice(2)+'.'+ext;
-  const {error}=await db.storage.from('site-media').upload(path,file,{upsert:false,contentType:file.type||'audio/mpeg'});
-  if(error)throw error;
-  return db.storage.from('site-media').getPublicUrl(path).data.publicUrl;
-}
-function audioDuration(file){
-  return new Promise(res=>{
-    const a=new Audio(),u=URL.createObjectURL(file);a.preload='metadata';
-    a.onloadedmetadata=()=>{res(Math.round(a.duration)||0);URL.revokeObjectURL(u)};
-    a.onerror=()=>{res(0);URL.revokeObjectURL(u)};a.src=u;
+let slideTimer=null,slideRun=0;
+const imgKeep={};
+function loadImg(u){
+  if(imgKeep[u])return imgKeep[u].p;
+  const i=new Image();
+  const p=new Promise(res=>{
+    i.onload=()=>{(i.decode?i.decode():Promise.resolve()).catch(()=>{}).then(()=>res(true))};
+    i.onerror=()=>res(false);
   });
+  i.src=u;imgKeep[u]={p,i};return p;
 }
-$('fAudio').onchange=async e=>{
-  const files=[...e.target.files];e.target.value='';if(!files.length)return;
-  let ok=0;
-  for(const f of files){
-    try{
-      $('sub').textContent='Uploading '+(ok+1)+' of '+files.length+'…';
-      const [url,dur]=await Promise.all([uploadAudio(f),audioDuration(f)]);
-      const title=f.name.replace(/\.[^.]+$/,'').replace(/_+/g,' ').trim();
-      const {error}=await db.from('songs').insert({title,artist:'Zubeen Da',album:'',duration:dur,url,sort_order:songs.length+ok});
-      if(error)throw error;
-      ok++;
-    }catch(err){alert('Upload failed for '+f.name+': '+err.message)}
-  }
-  await loadPublicData();
-  $('sub').textContent=ok+' of '+files.length+' song(s) uploaded.';
-};
-async function uploadImage(file,folder){
-  const ext=(file.name.split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,'')||'jpg';
-  const path=folder+'/'+Date.now()+'-'+Math.random().toString(36).slice(2)+'.'+ext;
-  const {error}=await db.storage.from('site-media').upload(path,file,{upsert:false,contentType:file.type||'image/jpeg'});
-  if(error)throw error;
-  const {data}=db.storage.from('site-media').getPublicUrl(path);return data.publicUrl;
-}
-$('fPhotos').onchange=async e=>{
-  const files=[...e.target.files];e.target.value='';if(!files.length)return;
-  for(const f of files){
-    try{
-      const url=await uploadImage(f,'photos');
-      const {error}=await db.from('background_photos').insert({image_url:url,sort_order:photos.length});
-      if(error)throw error;
-    }catch(err){alert('Photo upload failed: '+err.message)}
-  }
-  await loadPublicData();
-};
-$('fQr').onchange=async e=>{
-  const f=e.target.files[0];e.target.value='';if(!f)return;
-  try{
-    const url=await uploadImage(f,'qr');
-    if(settings){
-      const {error}=await db.from('site_settings').update({qr_url:url}).eq('id',settings.id);
-      if(error)throw error;
-    }else{
-      const {error}=await db.from('site_settings').insert({qr_url:url});
-      if(error)throw error;
-    }
-    await loadPublicData();alert('Tip QR updated.');
-  }catch(err){alert('QR update failed: '+err.message)}
-};
-db.auth.onAuthStateChange((_event,s)=>{session=s;setTimeout(checkAdmin,0)});
-(async()=>{
-  try{await loadPublicData();await checkAdmin()}
-  catch(err){$('sub').textContent='Could not load radio data: '+err.message;console.error(err)}
-})();
-</script>
-</body>
-</html>
+const bgCss=u=>'url("'+u.replace(/"/g,'')+'")';
+async function slides(){
+  const run=++slideRun;clearTimeout(slideTimer);
+  const L=[$('s0'),$('s1')];L.forEach(x=>x.classList.remove('on','prev'));
+  if(!photos.length)return;
+  let idx=0,top=0;
+  await loadImg(photos[0]);if(run!==slideRun)return;
+  L[0].style.backgroundImage=bgCss(photos[0]);L[0].classList.add('on');
+  if(photos.length<2)return;
+  loadImg(photos[1]);
+  const step=async()=>{
+    const next=(idx+1)%photos.length;
+    const ok=await loadImg(photos[next]);   // wait until the next photo is fully ready
+    if(run!==slideRun)return;
+    if(!ok){idx=next;slideTimer=setTimeout(step,300);return}
+    const o=L[top],n=L[1-top];
+    n.style.backgroundImage=bgCss(photos[next]);
+    o.classList.remove('on');o.classList.add('prev');   // old photo stays solid underneath
+    n.classList.remove('prev');n.classList.add('on');   // new photo fades in on top
+    idx=next;top=1-top;
+    setTimeout(()=>o.classList.remove('prev'),2000);
+    loadImg(photos[(idx+1)%photos.length]);              // preload the one after
+    slideTimer=setTimeout(step,6000);
+  };
+  slideTimer=setTimeout
