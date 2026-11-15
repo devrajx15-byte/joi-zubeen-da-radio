@@ -167,6 +167,7 @@ input[type=file]{display:none}
 <script>
 const SUPABASE_URL = 'https://fzbqqwgcnwoljvzkufyu.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_Foh5o6ht2umURXC2TuANjg_U35LvB27';
+if(!window.supabase){document.getElementById('sub').textContent='Could not load the data library. Check your internet and reload.';throw new Error('supabase library missing')}
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = id => document.getElementById(id);
 let songs=[], photos=[], settings=null, current=-1, order=[], shuffleOn=true;
