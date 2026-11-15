@@ -293,4 +293,232 @@ async function slides(){
     loadImg(photos[(idx+1)%photos.length]);              // preload the one after
     slideTimer=setTimeout(step,6000);
   };
-  slideTimer=setTimeout
+  slideTimer=setTimeout(step,6000);
+}
+function qrShow(){
+  const url=settings?.qr_url;
+  if(url){$('qr').src=url;$('qr').hidden=false;$('qrEmpty').hidden=true}
+  else{$('qr').hidden=true;$('qrEmpty').hidden=false}
+}
+$('infoBtn').onclick=e=>{e.stopPropagation();$('dAbout').showModal()};
+$('closeAbout').onclick=()=>$('dAbout').close();
+$('dAbout').addEventListener('click',e=>{if(e.target===$('dAbout'))$('dAbout').close()});
+$('tip').onclick=()=>$('dTip').showModal();
+$('closeTip').onclick=()=>$('dTip').close();
+$('play').onclick=()=>{
+  if(current<0){if(order.length)playIndex(order[0]);return}
+  if(au.paused)au.play().catch(()=>{});else au.pause();
+};
+$('next').onclick=()=>playIndex(nextIndex());
+$('prev').onclick=()=>{
+  if(current<0)return;
+  if(au.currentTime>4)au.currentTime=0;else playIndex(prevIndex());
+};
+$('shuf').onclick=()=>{
+  shuffleOn=!shuffleOn;$('shuf').classList.toggle('on',shuffleOn);
+  $('shuf').setAttribute('aria-pressed',String(shuffleOn));buildOrder();showNext();
+};
+$('trk').onclick=e=>{
+  const d=au.duration;if(!d||!isFinite(d))return;
+  const r=$('trk').getBoundingClientRect();
+  au.currentTime=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*d;
+};
+
+async function checkAdmin(){
+  const {data:{session:s}}=await db.auth.getSession();session=s;
+  if(!s){isAdmin=false;$('mbtn').hidden=true;return false}
+  const {data,error}=await db.from('admin_users').select('user_id').eq('user_id',s.user.id).maybeSingle();
+  isAdmin=!error&&!!data;
+  $('mbtn').hidden=!isAdmin;
+  return isAdmin;
+}
+$('loginBtn').onclick=async()=>{
+  if(session){alert(isAdmin?'You are signed in as the site admin.':'Signed in, but this account is not registered as an admin.');return}
+  const email=prompt('Admin email address:');if(!email)return;
+  const password=prompt('Admin password:');if(!password)return;
+  const {data,error}=await db.auth.signInWithPassword({email,password});
+  if(error){alert('Login failed: '+error.message);return}
+  session=data.session;
+  if(await checkAdmin()){alert('Admin login successful!');}
+  else{await db.auth.signOut();session=null;alert('This account is not listed in admin_users.')}
+};
+$('mbtn').onclick=e=>{e.stopPropagation();$('menu').classList.toggle('open')};
+document.addEventListener('click',()=>$('menu').classList.remove('open'));
+$('menu').onclick=async e=>{
+  const action=e.target.dataset.a;if(!action)return;
+  if(!isAdmin){alert('Admin access required.');return}
+  if(action==='import')$('dImp').showModal();
+  if(action==='photos')$('fPhotos').click();
+  if(action==='qr')$('fQr').click();
+  if(action==='audio')$('fAudio').click();
+  if(action==='cover'){if(current<0||!coverPath(songs[current].url)){alert('Play one of your uploaded songs first.');return}$('fCover').click()}
+  if(action==='clrS'&&confirm('Delete every song from the online playlist?')){
+    const {error}=await db.from('songs').delete().gt('id',0);
+    if(error)alert(error.message);else{songs=[];refreshSongs()}
+  }
+  if(action==='clrP'&&confirm('Delete all registered background photos?')){
+    const {error}=await db.from('background_photos').delete().gt('id',0);
+    if(error)alert(error.message);else{photos=[];slides()}
+  }
+  if(action==='pub')alert('Your changes are saved directly to Supabase when each action completes.');
+  if(action==='logout'){await db.auth.signOut();session=null;isAdmin=false;$('mbtn').hidden=true;alert('Signed out.')}
+};
+function parseCSV(t){
+  const rows=[];let r=[],c='',q=false;
+  for(let i=0;i<t.length;i++){const ch=t[i];
+    if(q){if(ch==='"'&&t[i+1]==='"'){c+='"';i++}else if(ch==='"')q=false;else c+=ch}
+    else if(ch==='"')q=true;else if(ch===','){r.push(c);c=''}
+    else if(ch==='\n'||ch==='\r'){if(ch==='\r'&&t[i+1]==='\n')i++;r.push(c);c='';if(r.some(x=>x.trim()))rows.push(r);r=[]}
+    else c+=ch;
+  }
+  r.push(c);if(r.some(x=>x.trim()))rows.push(r);return rows;
+}
+$('closeImp').onclick=()=>$('dImp').close();
+$('pickCsv').onclick=()=>$('fCsv').click();
+$('fCsv').onchange=async e=>{const f=e.target.files[0];if(f)$('paste').value=await f.text();e.target.value=''};
+$('goImp').onclick=async()=>{
+  if(!isAdmin){$('impMsg').textContent='Please sign in as admin first.';return}
+  const rows=parseCSV($('paste').value.trim());if(!rows.length){$('impMsg').textContent='No CSV rows found.';return}
+  let h=rows[0].map(x=>x.trim().toLowerCase()),start=(h.includes('title')||h.includes('url'))?1:0;
+  const idx={title:h.indexOf('title'),artist:h.indexOf('artist'),album:h.indexOf('album'),duration:h.indexOf('duration'),url:h.indexOf('url')};
+  if(start===0){idx.title=0;idx.artist=1;idx.album=2;idx.duration=3;idx.url=4}
+  const payload=rows.slice(start).map((r,i)=>({
+    title:(r[idx.title]||'').trim(),artist:(r[idx.artist]||'').trim(),
+    album:(r[idx.album]||'').trim(),
+    duration:parseInt(r[idx.duration],10)||0,url:(r[idx.url]||'').trim(),sort_order:songs.length+i
+  })).filter(x=>x.title&&/^https?:\/\//i.test(x.url)&&!isYT(x.url));
+  if(!payload.length){$('impMsg').textContent='No valid rows. Expected Title, Artist, Album, Duration, URL (direct audio link, not YouTube).';return}
+  $('impMsg').textContent='Uploading '+payload.length+' songs…';
+  const {error}=await db.from('songs').insert(payload);
+  if(error){$('impMsg').textContent='Import failed: '+error.message;return}
+  $('impMsg').textContent='Imported '+payload.length+' songs successfully.';
+  await loadPublicData();$('dImp').close();$('paste').value='';
+};
+const SB_MARK='/object/public/site-media/';
+function coverPath(url){
+  const i=(url||'').indexOf(SB_MARK);if(i<0)return null;
+  return url.slice(i+SB_MARK.length).split('?')[0].replace(/\.[a-z0-9]+$/i,'.jpg');
+}
+function coverUrl(url,bust){
+  const p=coverPath(url);if(!p)return null;
+  return url.slice(0,url.indexOf(SB_MARK)+SB_MARK.length)+p+(bust?'?v='+bust:'');
+}
+let discRun=0;
+function setDisc(s,bust){
+  const d=$('disc'),run=++discRun;
+  const fb=photos.length?photos[Math.max(0,current)%photos.length]:'';
+  d.style.backgroundImage=fb?bgCss(fb):'';          // fallback: one of your background photos
+  const cu=coverUrl(s.url,bust);if(!cu)return;
+  const im=new Image();
+  im.onload=()=>{if(run===discRun)d.style.backgroundImage=bgCss(cu)};
+  im.src=cu;                                          // real cover (if the song has one)
+}
+async function readCover(file){
+  try{
+    const head=new Uint8Array(await file.slice(0,10).arrayBuffer());
+    if(String.fromCharCode(head[0],head[1],head[2])!=='ID3')return null;
+    const ver=head[3],size=(head[6]<<21)|(head[7]<<14)|(head[8]<<7)|head[9];
+    const buf=new Uint8Array(await file.slice(0,10+Math.min(size,8*1024*1024)).arrayBuffer());
+    const end=Math.min(buf.length,10+size);let p=10;
+    if(head[5]&0x40&&ver>2){p+=ver===4?((buf[10]<<21)|(buf[11]<<14)|(buf[12]<<7)|buf[13]):(((buf[10]<<24)|(buf[11]<<16)|(buf[12]<<8)|buf[13])+4)}
+    const idLen=ver===2?3:4,hdr=ver===2?6:10,ch=(a,b)=>String.fromCharCode(...buf.slice(a,b));
+    while(p+hdr<=end){
+      const id=ch(p,p+idLen);if(!/^[A-Z0-9]+$/.test(id))break;
+      const fs=ver===2?((buf[p+3]<<16)|(buf[p+4]<<8)|buf[p+5]):ver===4?((buf[p+4]<<21)|(buf[p+5]<<14)|(buf[p+6]<<7)|buf[p+7]):(((buf[p+4]<<24)|(buf[p+5]<<16)|(buf[p+6]<<8)|buf[p+7])>>>0);
+      const b0=p+hdr,b1=b0+fs;if(fs<=0||b1>buf.length)break;
+      if(id==='APIC'||id==='PIC'){
+        const enc=buf[b0];let q=b0+1,mime;
+        if(id==='PIC'){mime=ch(q,q+3).toLowerCase()==='png'?'image/png':'image/jpeg';q+=3}
+        else{let z=q;while(z<b1&&buf[z]!==0)z++;mime=ch(q,z).toLowerCase();q=z+1}
+        if(mime==='image/jpg'||!/^image\//.test(mime))mime='image/jpeg';
+        q++;
+        if(enc===1||enc===2){while(q+1<b1&&!(buf[q]===0&&buf[q+1]===0))q+=2;q+=2}
+        else{while(q<b1&&buf[q]!==0)q++;q++}
+        return q<b1?new Blob([buf.slice(q,b1)],{type:mime}):null;
+      }
+      p=b1;
+    }
+  }catch(e){}
+  return null;
+}
+async function saveCover(audioUrl,blob){
+  const {error}=await db.storage.from('site-media').upload(coverPath(audioUrl),blob,{upsert:true,contentType:blob.type||'image/jpeg'});
+  if(error)throw error;
+}
+$('fCover').onchange=async e=>{
+  const f=e.target.files[0];e.target.value='';if(!f||current<0)return;
+  try{$('sub').textContent='Saving cover…';await saveCover(songs[current].url,f);setDisc(songs[current],Date.now());$('sub').textContent='Cover saved.'}
+  catch(err){alert('Cover upload failed: '+err.message)}
+};
+async function uploadAudio(file){
+  const ext=(file.name.split('.').pop()||'mp3').toLowerCase().replace(/[^a-z0-9]/g,'')||'mp3';
+  const path='songs/'+Date.now()+'-'+Math.random().toString(36).slice(2)+'.'+ext;
+  const {error}=await db.storage.from('site-media').upload(path,file,{upsert:false,contentType:file.type||'audio/mpeg'});
+  if(error)throw error;
+  const url=db.storage.from('site-media').getPublicUrl(path).data.publicUrl;
+  try{const c=await readCover(file);if(c)await saveCover(url,c)}catch(e){}   // embedded album art, if any
+  return url;
+}
+function audioDuration(file){
+  return new Promise(res=>{
+    const a=new Audio(),u=URL.createObjectURL(file);a.preload='metadata';
+    a.onloadedmetadata=()=>{res(Math.round(a.duration)||0);URL.revokeObjectURL(u)};
+    a.onerror=()=>{res(0);URL.revokeObjectURL(u)};a.src=u;
+  });
+}
+$('fAudio').onchange=async e=>{
+  const files=[...e.target.files];e.target.value='';if(!files.length)return;
+  let ok=0;
+  for(const f of files){
+    try{
+      $('sub').textContent='Uploading '+(ok+1)+' of '+files.length+'…';
+      const [url,dur]=await Promise.all([uploadAudio(f),audioDuration(f)]);
+      const title=f.name.replace(/\.[^.]+$/,'').replace(/_+/g,' ').trim();
+      const {error}=await db.from('songs').insert({title,artist:'Zubeen Da',album:'',duration:dur,url,sort_order:songs.length+ok});
+      if(error)throw error;
+      ok++;
+    }catch(err){alert('Upload failed for '+f.name+': '+err.message)}
+  }
+  await loadPublicData();
+  $('sub').textContent=ok+' of '+files.length+' song(s) uploaded.';
+};
+async function uploadImage(file,folder){
+  const ext=(file.name.split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,'')||'jpg';
+  const path=folder+'/'+Date.now()+'-'+Math.random().toString(36).slice(2)+'.'+ext;
+  const {error}=await db.storage.from('site-media').upload(path,file,{upsert:false,contentType:file.type||'image/jpeg'});
+  if(error)throw error;
+  const {data}=db.storage.from('site-media').getPublicUrl(path);return data.publicUrl;
+}
+$('fPhotos').onchange=async e=>{
+  const files=[...e.target.files];e.target.value='';if(!files.length)return;
+  for(const f of files){
+    try{
+      const url=await uploadImage(f,'photos');
+      const {error}=await db.from('background_photos').insert({image_url:url,sort_order:photos.length});
+      if(error)throw error;
+    }catch(err){alert('Photo upload failed: '+err.message)}
+  }
+  await loadPublicData();
+};
+$('fQr').onchange=async e=>{
+  const f=e.target.files[0];e.target.value='';if(!f)return;
+  try{
+    const url=await uploadImage(f,'qr');
+    if(settings){
+      const {error}=await db.from('site_settings').update({qr_url:url}).eq('id',settings.id);
+      if(error)throw error;
+    }else{
+      const {error}=await db.from('site_settings').insert({qr_url:url});
+      if(error)throw error;
+    }
+    await loadPublicData();alert('Tip QR updated.');
+  }catch(err){alert('QR update failed: '+err.message)}
+};
+db.auth.onAuthStateChange((_event,s)=>{session=s;setTimeout(checkAdmin,0)});
+(async()=>{
+  try{await loadPublicData();await checkAdmin()}
+  catch(err){$('sub').textContent='Could not load radio data: '+err.message;console.error(err)}
+})();
+</script>
+</body>
+</html>
