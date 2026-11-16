@@ -86,8 +86,7 @@ input[type=file]{display:none}
 <div class="app">
   <header>
     <div class="brand glass">Joi Zubeen Da</div>
-    <div class="hr"><button class="icb glass" id="infoBtn" aria-label="About and official songs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button><button class="icb glass" id="loginBtn" aria-label="Admin login">Admin</button>
-     <button class="icb glass" id="mbtn" aria-label="Owner menu" hidden><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></button></div>
+    <div class="hr"><button class="icb glass" id="infoBtn" aria-label="About and official songs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>     <button class="icb glass" id="mbtn" aria-label="Owner menu" hidden><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></button></div>
     <div id="menu" class="glass">
       <button data-a="import">Import playlist (CSV)</button>
        <button data-a="logout">Sign out</button>
@@ -147,7 +146,7 @@ input[type=file]{display:none}
     <p>Only audio that the site owner has permission to share is played here. If you are a rights holder and would like any content changed or removed, please contact the site owner and it will be taken down promptly.</p>
     <p>Please enjoy the music, support the artist through official platforms, and do not re-upload or sell the songs from this site.</p>
   </div>
-  <div class="row"><button class="btn alt" id="closeAbout">Close</button></div>
+  <div class="row"><button class="btn alt" id="closeAbout">Close</button><button class="btn alt" id="loginBtn" aria-label="Admin login">Admin sign in</button></div>
 </dialog>
 <dialog id="dTip">
   <h2>Buy me a coffee</h2>
@@ -303,6 +302,7 @@ function qrShow(){
 }
 $('infoBtn').onclick=e=>{e.stopPropagation();$('dAbout').showModal()};
 $('closeAbout').onclick=()=>$('dAbout').close();
+$('loginBtn').addEventListener('click',()=>$('dAbout').close());
 $('dAbout').addEventListener('click',e=>{if(e.target===$('dAbout'))$('dAbout').close()});
 $('tip').onclick=()=>$('dTip').showModal();
 $('closeTip').onclick=()=>$('dTip').close();
