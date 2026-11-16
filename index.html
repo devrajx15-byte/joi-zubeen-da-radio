@@ -79,6 +79,35 @@ input[type=file]{display:none}
 #dAbout h3{margin:20px 0 6px;font-size:1rem;letter-spacing:-.01em}
 #dAbout .note{background:var(--field);border:1px solid var(--sline);border-radius:16px;padding:12px 14px;margin:10px 0}
 #dAbout a.btn{display:inline-block;text-decoration:none}
+#dSearch{--sink:#fff;--sline:rgba(255,255,255,.22);--field:rgba(255,255,255,.12);padding:18px 16px 16px;color:#fff;border:1px solid rgba(255,255,255,.16);border-radius:30px;
+  background:linear-gradient(135deg,rgba(255,255,255,.24),rgba(255,255,255,.06)),rgba(20,16,14,.28);
+  backdrop-filter:blur(28px) saturate(190%);-webkit-backdrop-filter:blur(28px) saturate(190%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -1px 0 rgba(255,255,255,.08),0 24px 60px rgba(0,0,0,.4);overflow:hidden}
+#dSearch::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;background:linear-gradient(140deg,rgba(255,255,255,.8),rgba(255,255,255,0) 32%,rgba(255,255,255,0) 66%,rgba(255,255,255,.45));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+#dSearch::backdrop{background:rgba(0,0,0,.28);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+#dSearch #sq{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.25);box-shadow:inset 0 1px 0 rgba(255,255,255,.3)}
+#dSearch #sq::placeholder{color:rgba(255,255,255,.65)}
+#dSearch .chip{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.22);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+#dSearch .chip.on{background:rgba(255,255,255,.92);border-color:transparent;color:#1d1a17}
+#dSearch .sr:active,#dSearch .sr.cur{background:rgba(255,255,255,.14)}
+#dSearch .sr .up{color:#ffb27d;border-color:rgba(255,178,125,.7)}
+#dSearch .btn.alt{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.25);color:#fff}
+#sq{width:100%;background:var(--field);border:1px solid var(--sline);color:var(--sink);border-radius:999px;padding:12px 16px;font:inherit;font-size:1rem;outline:none}
+#sq:focus{border-color:var(--acc)}
+.chips{display:flex;gap:8px;margin:12px 0 4px}
+.chip{background:var(--field);color:var(--sink);border:1px solid var(--sline);border-radius:999px;padding:7px 14px;font:inherit;font-size:.8rem;font-weight:600;cursor:pointer}
+.chip.on{background:var(--acc);border-color:var(--acc);color:#fff}
+#scount{font-size:.75rem;opacity:.65;margin:8px 4px}
+#sres{max-height:52vh;overflow:auto;margin:0 -4px;-webkit-overflow-scrolling:touch}
+.sr{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:0;color:var(--sink);font:inherit;padding:10px 8px;border-radius:14px;cursor:pointer}
+.sr:active{background:var(--field)}
+.sr.cur{background:var(--field)}
+.sr .t{flex:1;min-width:0}
+.sr .t b{display:block;font-weight:600;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sr .t small{display:block;opacity:.65;font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sr .d{font-size:.75rem;opacity:.6;font-variant-numeric:tabular-nums}
+.sr .up{font-size:.62rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--acc);border:1px solid var(--acc);border-radius:999px;padding:2px 7px}
+.sempty{text-align:center;padding:26px 8px;font-size:.9rem;opacity:.7}
 </style>
 </head>
 <body>
@@ -86,7 +115,7 @@ input[type=file]{display:none}
 <div class="app">
   <header>
     <div class="brand glass">Joi Zubeen Da</div>
-    <div class="hr"><button class="icb glass" id="infoBtn" aria-label="About and official songs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>     <button class="icb glass" id="mbtn" aria-label="Owner menu" hidden><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></button></div>
+    <div class="hr"><button class="icb glass" id="searchBtn" aria-label="Search songs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></button> <button class="icb glass" id="infoBtn" aria-label="About and official songs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>     <button class="icb glass" id="mbtn" aria-label="Owner menu" hidden><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></button></div>
     <div id="menu" class="glass">
       <button data-a="import">Import playlist (CSV)</button>
        <button data-a="logout">Sign out</button>
@@ -147,6 +176,13 @@ input[type=file]{display:none}
     <p>Please enjoy the music, support the artist through official platforms, and do not re-upload or sell the songs from this site.</p>
   </div>
   <div class="row"><button class="btn alt" id="closeAbout">Close</button><button class="btn alt" id="loginBtn" aria-label="Admin login">Admin sign in</button></div>
+</dialog>
+<dialog id="dSearch">
+  <input id="sq" type="search" placeholder="Search songs" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+  <div class="chips"><button class="chip on" data-f="all">All songs</button><button class="chip" data-f="up">Uploaded</button></div>
+  <div id="scount"></div>
+  <div id="sres"></div>
+  <div class="row"><button class="btn alt" id="closeSearch">Close</button></div>
 </dialog>
 <dialog id="dTip">
   <h2>Buy me a coffee</h2>
@@ -257,6 +293,7 @@ async function loadPublicData(){
   if(settings?.video_url){if(bg.src!==settings.video_url){bg.src=settings.video_url;bg.load();}bg.play().catch(()=>{});}
   else{bg.removeAttribute('src');bg.load();}
   slides();qrShow();refreshSongs();
+  if($("dSearch").open)renderSearch();
 }
 let slideTimer=null,slideRun=0;
 const imgKeep={};
@@ -515,6 +552,41 @@ $('fQr').onchange=async e=>{
     await loadPublicData();alert('Tip QR updated.');
   }catch(err){alert('QR update failed: '+err.message)}
 };
+/* ---------- Search (all songs, including the ones you uploaded) ---------- */
+let sFilter='all';
+const norm=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+const isUploaded=u=>(u||'').indexOf(SB_MARK+'songs/')>-1;
+function renderSearch(){
+  const q=norm($('sq').value).trim().split(/\s+/).filter(Boolean);
+  const hits=[];
+  songs.forEach((s,i)=>{
+    if(sFilter==='up'&&!isUploaded(s.url))return;
+    const hay=norm((s.title||'')+' '+(s.artist||'')+' '+(s.album||''));
+    if(q.every(w=>hay.includes(w)))hits.push(i);
+  });
+  $('scount').textContent=hits.length+(hits.length===1?' song':' songs');
+  $('sres').innerHTML=hits.slice(0,300).map(i=>{
+    const s=songs[i],sub=[s.artist,s.album].filter(Boolean).join(' · ');
+    return '<button class="sr'+(i===current?' cur':'')+'" data-i="'+i+'"><span class="t"><b>'+esc(s.title||'Unknown title')+'</b>'+(sub?'<small>'+esc(sub)+'</small>':'')+'</span>'+(isUploaded(s.url)?'<span class="up">Uploaded</span>':'')+'<span class="d">'+(s.duration?fmt(s.duration):'')+'</span></button>';
+  }).join('')||'<div class="sempty">No songs found.</div>';
+}
+$('searchBtn').onclick=e=>{
+  e.stopPropagation();renderSearch();$('dSearch').showModal();
+  $('sq').focus();
+};
+$('sq').oninput=renderSearch;
+$('closeSearch').onclick=()=>$('dSearch').close();
+$('dSearch').addEventListener('click',e=>{if(e.target===$('dSearch'))$('dSearch').close()});
+document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{
+  sFilter=b.dataset.f;
+  document.querySelectorAll('.chip').forEach(x=>x.classList.toggle('on',x===b));
+  renderSearch();
+});
+$('sres').onclick=e=>{
+  const b=e.target.closest('.sr');if(!b)return;
+  playIndex(+b.dataset.i);$('dSearch').close();
+};
+
 db.auth.onAuthStateChange((_event,s)=>{session=s;setTimeout(checkAdmin,0)});
 (async()=>{
   try{await loadPublicData();await checkAdmin()}
