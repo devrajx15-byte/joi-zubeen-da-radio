@@ -1,9 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="icon" type="image/png" href="/icon-512.png">
-<link rel="apple-touch-icon" href="/icon-512.png">
-<meta name="theme-color" content="#000000">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Zubeen Da Radio</title>
@@ -15,7 +12,9 @@
 html,body{height:100%;margin:0}
 body{background:#120e0c;color:var(--on);font-family:-apple-system,"SF Pro Display","SF Pro Text","Inter",system-ui,"Segoe UI",sans-serif;overflow:hidden;-webkit-font-smoothing:antialiased}
 #bg{position:fixed;inset:0;z-index:0;background:radial-gradient(60% 45% at 18% 12%,#c2562d 0,transparent 70%),radial-gradient(55% 40% at 88% 42%,#6d3a97 0,transparent 70%),radial-gradient(75% 50% at 35% 100%,#1c6a74 0,transparent 70%),#120e0c}
-.sl{position:absolute;inset:0;background:center/cover no-repeat;opacity:0;z-index:0;transition:opacity 1.8s ease;will-change:opacity;transform:translateZ(0)}
+.sl{position:absolute;inset:-4%;background:center/cover no-repeat;opacity:0;z-index:0;transition:opacity 2.2s cubic-bezier(.4,0,.2,1);will-change:opacity,transform;transform:translate3d(0,0,0) scale(1.04)}
+.sl.on,.sl.prev{animation:kb 11s cubic-bezier(.25,.1,.25,1) forwards}
+@keyframes kb{from{transform:translate3d(0,0,0) scale(1.04)}to{transform:translate3d(var(--kx,-2%),var(--ky,-1.5%),0) scale(1.16)}}
 .sl.prev{opacity:1;z-index:1;transition:none}
 .sl.on{opacity:1;z-index:2}
 #bg::after{content:"";position:absolute;inset:0;background:linear-gradient(rgba(0,0,0,.28),rgba(0,0,0,0) 30%,rgba(0,0,0,.18) 55%,rgba(0,0,0,.55))}
@@ -111,13 +110,47 @@ input[type=file]{display:none}
 .sr .d{font-size:.75rem;opacity:.6;font-variant-numeric:tabular-nums}
 .sr .up{font-size:.62rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--acc);border:1px solid var(--acc);border-radius:999px;padding:2px 7px}
 .sempty{text-align:center;padding:26px 8px;font-size:.9rem;opacity:.7}
+
+/* ---- liquid glass song box, count badge, motion ---- */
+.brand .cnt{opacity:1;font-weight:650;font-size:.72rem;padding:2px 9px;border-radius:999px;background:rgba(255,255,255,.18);box-shadow:inset 0 1px 0 rgba(255,255,255,.35);font-variant-numeric:tabular-nums;align-self:center}
+.brand{align-items:center}
+.np{padding:16px 20px 18px;border-radius:30px;overflow:hidden}
+.np>*{position:relative;z-index:1}
+.liquid{background:radial-gradient(120% 90% at 0% 0%,rgba(255,255,255,.34),rgba(255,255,255,0) 55%),radial-gradient(90% 70% at 100% 100%,rgba(255,255,255,.14),rgba(255,255,255,0) 60%),rgba(20,16,14,.22);backdrop-filter:blur(18px) saturate(200%) brightness(1.08);-webkit-backdrop-filter:blur(18px) saturate(200%) brightness(1.08);box-shadow:inset 0 1.5px 0 rgba(255,255,255,.55),inset 0 -10px 24px rgba(255,255,255,.07),inset 0 0 0 1px rgba(255,255,255,.1),0 18px 44px rgba(0,0,0,.34)}
+.liquid::after{content:"";position:absolute;top:-60%;left:-40%;width:50%;height:220%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.22),transparent);transform:translateX(-120%) rotate(8deg);animation:sheen 7s ease-in-out infinite;pointer-events:none}
+@keyframes sheen{0%,70%{transform:translateX(-120%) rotate(8deg)}100%{transform:translateX(420%) rotate(8deg)}}
+#title{font-size:clamp(1.5rem,6vw,2rem);overflow-wrap:anywhere}
+.np.swap #title,.np.swap #sub,.np.swap #kick{animation:swap .65s cubic-bezier(.2,.8,.2,1) backwards}
+.np.swap #sub{animation-delay:.06s}
+@keyframes swap{from{opacity:0;transform:translate3d(0,10px,0);filter:blur(6px)}to{opacity:1;transform:none;filter:blur(0)}}
+header .glass:not(#menu),.np,.pill,.time,.next,#tip{animation:rise .85s cubic-bezier(.2,.8,.2,1) backwards}
+header .glass:not(#menu){animation-delay:.05s}.np{animation-delay:.2s}.pill{animation-delay:.3s}.time{animation-delay:.38s}.next{animation-delay:.44s}#tip{animation-delay:.5s}
+@keyframes rise{from{opacity:0;transform:translate3d(0,18px,0) scale(.97)}to{opacity:1;transform:none}}
+.ctl button{transition:transform .3s cubic-bezier(.2,.8,.2,1),background .2s}
+.icb,#tip,.next{transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+#prog{transition:width .25s linear}
+.sr{transition:background .2s}
+#menu.open{animation:menuIn .28s cubic-bezier(.2,.8,.2,1);transform-origin:top right}
+@keyframes menuIn{from{opacity:0;transform:scale(.92) translateY(-6px)}}
+dialog[open]{animation:pop .4s cubic-bezier(.2,.8,.2,1)}
+dialog[open]::backdrop{animation:fadeIn .35s ease}
+@keyframes pop{from{opacity:0;transform:translate3d(0,18px,0) scale(.95)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}}
+@media (hover:hover){.ctl button:hover{transform:scale(1.1)}.icb:hover,#tip:hover,.next:hover{transform:translateY(-2px)}.sr:hover{background:rgba(255,255,255,.1)}.ctl button:active{transform:scale(.9)}}
+.icb:active,#tip:active{transform:scale(.94)}
+@media (prefers-reduced-motion:reduce){*,::before,::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}.sl.on,.sl.prev{animation:none!important}}
 </style>
+
+<link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png">
+<link rel="apple-touch-icon" href="/icon-512.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#120e0c">
 </head>
 <body>
 <div id="bg"><video id="bgVideo" autoplay muted loop playsinline></video><div class="sl" id="s0"></div><div class="sl" id="s1"></div></div>
 <div class="app">
   <header>
-    <div class="brand glass">Joi Zubeen Da</div>
+    <div class="brand glass">Joi Zubeen Da<span class="cnt" id="cnt" hidden></span></div>
     <div class="hr"><button class="icb glass" id="searchBtn" aria-label="Search songs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></button> <button class="icb glass" id="infoBtn" aria-label="About and official songs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>     <button class="icb glass" id="mbtn" aria-label="Owner menu" hidden><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></button></div>
     <div id="menu" class="glass">
       <button data-a="import">Import playlist (CSV)</button>
@@ -132,11 +165,11 @@ input[type=file]{display:none}
     </div>
   </header>
 
-  <div class="stage">
+  <div class="stage"><div class="np glass liquid" id="np">
     <p id="kick">Now playing</p>
     <p id="title">Zubeen Da Radio</p>
     <p id="sub">Playlist coming soon</p>
-  </div>
+  </div></div>
   <div class="pill glass">
     <div class="ctl">
       <button id="shuf" class="on" aria-label="Shuffle" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h3c2.2 0 3.4 1 4.6 2.8l2.8 4.4c1.2 1.8 2.4 2.8 4.6 2.8H21M3 17h3c2.2 0 3.4-1 4.6-2.8M13.4 9.8C14.6 8 15.8 7 18 7h3M18 4l3 3-3 3M18 14l3 3-3 3"/></svg></button>
@@ -256,9 +289,9 @@ function setMediaSession(s){
 }
 function selectSong(i,autoplay){
   if(i<0||i>=songs.length)return;
-  current=i;const s=songs[i];$('title').textContent=s.title||'Unknown title';
+  current=i;const s=songs[i];const np=$('np');np.classList.remove('swap');void np.offsetWidth;np.classList.add('swap');$('title').textContent=s.title||'Unknown title';
   $('sub').textContent=s.artist||'Zubeen Da Radio';showNext();
-  $('kick').textContent='Now playing · '+songs.length+(songs.length===1?' song':' songs');
+  $('kick').textContent='Now playing';
   $('tc').textContent='0:00';$('td').textContent=fmt(s.duration);$('prog').style.width='0%';
   au.src=s.url;au.load();setMediaSession(s);setDisc(s);
   if(autoplay)au.play().catch(()=>setPlayingUI(false));else setPlayingUI(false);
@@ -276,7 +309,14 @@ au.addEventListener('error',()=>{
   if(songs.length>1&&errCount<songs.length)setTimeout(()=>playIndex(nextIndex()),1500);
 });
 function playIndex(i){if(i<0)return;selectSong(i,true)}
-function refreshSongs(){
+let cntShown=0,cntRaf=0;
+function setCount(n){
+  const el=$('cnt');el.hidden=!n;cancelAnimationFrame(cntRaf);
+  const from=cntShown,t0=performance.now();
+  const f=t=>{const p=Math.min(1,(t-t0)/900),e=1-Math.pow(1-p,3);cntShown=Math.round(from+(n-from)*e);el.textContent=cntShown;if(p<1)cntRaf=requestAnimationFrame(f)};
+  cntRaf=requestAnimationFrame(f);
+}
+function refreshSongs(){setCount(songs.length);
   buildOrder();
   if(songs.length){selectSong(order[0],false)}
   else{current=-1;$('title').textContent='Zubeen Da Radio';$('kick').textContent='Now playing';$('sub').textContent='Playlist coming soon';$('upnext').textContent='Up next: —';au.removeAttribute('src');au.load()}
@@ -310,13 +350,15 @@ function loadImg(u){
   i.src=u;imgKeep[u]={p,i};return p;
 }
 const bgCss=u=>'url("'+u.replace(/"/g,'')+'")';
+const KB=[[-2.2,-1.6],[2.2,-1.2],[-1.8,1.6],[2,1.4]];
+function kb(el,i){const d=KB[i%4];el.style.setProperty('--kx',d[0]+'%');el.style.setProperty('--ky',d[1]+'%')}
 async function slides(){
   const run=++slideRun;clearTimeout(slideTimer);
   const L=[$('s0'),$('s1')];L.forEach(x=>x.classList.remove('on','prev'));
   if(!photos.length)return;
   let idx=0,top=0;
   await loadImg(photos[0]);if(run!==slideRun)return;
-  L[0].style.backgroundImage=bgCss(photos[0]);L[0].classList.add('on');
+  kb(L[0],0);L[0].style.backgroundImage=bgCss(photos[0]);L[0].classList.add('on');
   if(photos.length<2)return;
   loadImg(photos[1]);
   const step=async()=>{
@@ -325,15 +367,15 @@ async function slides(){
     if(run!==slideRun)return;
     if(!ok){idx=next;slideTimer=setTimeout(step,300);return}
     const o=L[top],n=L[1-top];
-    n.style.backgroundImage=bgCss(photos[next]);
+    kb(n,next);n.style.backgroundImage=bgCss(photos[next]);
     o.classList.remove('on');o.classList.add('prev');   // old photo stays solid underneath
     n.classList.remove('prev');n.classList.add('on');   // new photo fades in on top
     idx=next;top=1-top;
-    setTimeout(()=>o.classList.remove('prev'),2000);
+    setTimeout(()=>o.classList.remove('prev'),2500);
     loadImg(photos[(idx+1)%photos.length]);              // preload the one after
-    slideTimer=setTimeout(step,6000);
+    slideTimer=setTimeout(step,7000);
   };
-  slideTimer=setTimeout(step,6000);
+  slideTimer=setTimeout(step,7000);
 }
 function qrShow(){
   const url=settings?.qr_url;
