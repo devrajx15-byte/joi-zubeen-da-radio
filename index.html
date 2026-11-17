@@ -112,8 +112,15 @@ input[type=file]{display:none}
 .sempty{text-align:center;padding:26px 8px;font-size:.9rem;opacity:.7}
 
 /* ---- liquid glass song box, count badge, motion ---- */
-.brand .cnt{opacity:1;font-weight:650;font-size:.72rem;padding:2px 9px;border-radius:999px;background:rgba(255,255,255,.18);box-shadow:inset 0 1px 0 rgba(255,255,255,.35);font-variant-numeric:tabular-nums;align-self:center}
-.brand{align-items:center}
+.hl{display:flex;align-items:center;gap:8px;min-width:0}
+header{gap:8px}
+.brand{align-items:center;white-space:nowrap}
+.songs{display:flex;align-items:center;gap:5px;padding:9px 14px;border-radius:999px;font-size:.82rem;font-weight:550;white-space:nowrap;overflow:hidden;letter-spacing:-.005em}
+.songs>*{position:relative;z-index:1}
+.songs .lbl{opacity:.82}
+.songs b{font-weight:720;font-variant-numeric:tabular-nums;display:inline-block;min-width:2.4ch}
+.songs.liquid::after{animation-delay:2.2s}
+@media (max-width:420px){.brand{padding:9px 13px;font-size:.88rem}.songs{padding:8px 11px;font-size:.76rem}.icb{width:40px;height:40px;font-size:18px}.hr{gap:6px}.hl{gap:6px}}
 .np{padding:16px 20px 18px;border-radius:30px;overflow:hidden}
 .np>*{position:relative;z-index:1}
 .liquid{background:radial-gradient(120% 90% at 0% 0%,rgba(255,255,255,.34),rgba(255,255,255,0) 55%),radial-gradient(90% 70% at 100% 100%,rgba(255,255,255,.14),rgba(255,255,255,0) 60%),rgba(20,16,14,.22);backdrop-filter:blur(18px) saturate(200%) brightness(1.08);-webkit-backdrop-filter:blur(18px) saturate(200%) brightness(1.08);box-shadow:inset 0 1.5px 0 rgba(255,255,255,.55),inset 0 -10px 24px rgba(255,255,255,.07),inset 0 0 0 1px rgba(255,255,255,.1),0 18px 44px rgba(0,0,0,.34)}
@@ -150,7 +157,7 @@ dialog[open]::backdrop{animation:fadeIn .35s ease}
 <div id="bg"><video id="bgVideo" autoplay muted loop playsinline></video><div class="sl" id="s0"></div><div class="sl" id="s1"></div></div>
 <div class="app">
   <header>
-    <div class="brand glass">Joi Zubeen Da<span class="cnt" id="cnt" hidden></span></div>
+    <div class="hl"><div class="brand glass">Joi Zubeen Da</div><div class="songs glass liquid" id="songsBox" hidden><span class="lbl">Songs:</span><b id="cnt">0</b></div></div>
     <div class="hr"><button class="icb glass" id="searchBtn" aria-label="Search songs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></button> <button class="icb glass" id="infoBtn" aria-label="About and official songs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>     <button class="icb glass" id="mbtn" aria-label="Owner menu" hidden><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></button></div>
     <div id="menu" class="glass">
       <button data-a="import">Import playlist (CSV)</button>
@@ -311,7 +318,7 @@ au.addEventListener('error',()=>{
 function playIndex(i){if(i<0)return;selectSong(i,true)}
 let cntShown=0,cntRaf=0;
 function setCount(n){
-  const el=$('cnt');el.hidden=!n;cancelAnimationFrame(cntRaf);
+  const el=$('cnt');$('songsBox').hidden=!n;cancelAnimationFrame(cntRaf);
   const from=cntShown,t0=performance.now();
   const f=t=>{const p=Math.min(1,(t-t0)/900),e=1-Math.pow(1-p,3);cntShown=Math.round(from+(n-from)*e);el.textContent=cntShown;if(p<1)cntRaf=requestAnimationFrame(f)};
   cntRaf=requestAnimationFrame(f);
